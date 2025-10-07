@@ -1,0 +1,99 @@
+import heapq
+import math
+
+# GRID SETUP (0 = free, 1 = obstacle)
+maze = [
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [1, 0, 1, 1, 0, 1, 0, 0, 1, 0],
+    [0, 0, 0, 0, 0, 1, 0, 0, 1, 0],
+    [0, 0, 1, 1, 0, 0, 1, 0, 1, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 1, 0],
+    [0, 0, 0, 1, 1, 1, 0, 0, 1, 0],
+    [1, 0, 1, 0, 1, 1, 0, 1, 1, 0],
+    [1, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [1, 0, 1, 1, 0, 1, 1, 0, 1, 1],
+    [0, 0, 0, 0, 0, 0, 0, 0, 1, 1]
+]
+
+# HEURISTICS
+def manhattan(a, b):
+    return abs(a[0] - b[0]) + abs(a[1] - b[1])
+
+def euclidean(a, b):
+    return math.sqrt((a[0] - b[0])**2 + (a[1] - b[1])**2)
+
+# A* SEARCH FUNCTION
+def astar_grid(grid, start, goal, heuristic, allow_diagonal=False):
+    rows, cols = len(grid), len(grid[0])
+    visited = set()
+    pq = [(heuristic(start, goal), 0, [start])]
+    expanded = 0
+
+    if allow_diagonal:
+        directions = [(-1,0),(1,0),(0,-1),(0,1),(-1,-1),(-1,1),(1,-1),(1,1)]
+    else:
+        directions = [(-1,0),(1,0),(0,-1),(0,1)]
+
+    while pq:
+        f, g, path = heapq.heappop(pq)
+        x, y = path[-1]
+        if (x, y) == goal:
+            return path, g, expanded
+        if (x, y) in visited:
+            continue
+        visited.add((x, y))
+        expanded += 1
+
+        for dx, dy in directions:
+            nx, ny = x + dx, y + dy
+            if 0 <= nx < rows and 0 <= ny < cols and grid[nx][ny] == 0:
+                step_cost = math.sqrt(2) if allow_diagonal and dx != 0 and dy != 0 else 1
+                total_g = g + step_cost
+                est_f = total_g + heuristic((nx, ny), goal)
+                heapq.heappush(pq, (est_f, total_g, path + [(nx, ny)]))
+
+    return None, float('inf'), expanded
+
+# VISUALIZE THE GRID
+def visualize(grid, path, start, goal):
+    path_set = set(path)
+    rows, cols = len(grid), len(grid[0])
+    print("\nGRID VISUALIZATION:")
+    for i in range(rows-1, -1, -1):  # print from bottom to top
+        row = ""
+        for j in range(cols):
+            if (i, j) == start:
+                row += "S "
+            elif (i, j) == goal:
+                row += "G "
+            elif (i, j) in path_set:
+                row += "* "
+            elif grid[i][j] == 1:
+                row += "X "
+            else:
+                row += ". "
+        print(row)
+    print()
+
+# MAIN EXECUTION
+
+# Get input
+start_in = input("Enter start position (row,col): ")
+goal_in = input("Enter goal position (row,col): ")
+
+start = tuple(map(int, start_in.split(',')))
+goal = tuple(map(int, goal_in.split(',')))
+
+# CASE 1: Manhattan (4-directional)
+print("CASE 1: Manhattan (4-directional)")
+path1, cost1, expanded1 = astar_grid(maze, start, goal, manhattan, allow_diagonal=False)
+visualize(maze, path1 if path1 else [], start, goal)
+print("Total Cost:", round(cost1, 2))
+print("Nodes Expanded:", expanded1, "\n")
+
+# CASE 2: Euclidean (8-directional)
+print("CASE 2: Euclidean (8-directional)")
+path2, cost2, expanded2 = astar_grid(maze, start, goal, euclidean, allow_diagonal=True)
+visualize(maze, path2 if path2 else [], start, goal)
+print("Total Cost:", round(cost2, 2))
+print("Nodes Expanded:", expanded2)
